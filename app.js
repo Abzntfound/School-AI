@@ -83,11 +83,16 @@ async function login() {
         showApp(username);
       }, 500);
     } else {
-      messageDiv.innerHTML = `<div class="error">${data.error}</div>`;
+      console.error('Login failed:', data);
+      let errorMsg = data.error || 'Login failed';
+      if (data.debug) {
+        errorMsg += `<br><small>${data.debug}</small>`;
+      }
+      messageDiv.innerHTML = `<div class="error">${errorMsg}<br><br>Try:<br>Username: <strong>admin</strong><br>Password: <strong>admin123</strong></div>`;
     }
   } catch (error) {
     console.error('Login error:', error);
-    messageDiv.innerHTML = '<div class="error">Connection error. Please check your Netlify deployment.</div>';
+    messageDiv.innerHTML = '<div class="error">Connection error. Check console (F12) and see CREDENTIALS.md</div>';
   } finally {
     button.disabled = false;
     button.textContent = 'Login';
