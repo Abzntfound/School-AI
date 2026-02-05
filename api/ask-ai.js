@@ -1,10 +1,11 @@
 const Anthropic = require('@anthropic-ai/sdk');
 
-// Get sessions from global (shared with aut
+// Get sessions from global (shared with auth)
 const getSessions = () => {
   return global.authSessions || new Map();
 };
 
+// Verify session token
 function verifyToken(authHeader) {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return null;
