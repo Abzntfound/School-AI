@@ -13,21 +13,34 @@ function verifyCredentials(username, password) {
   // CHANGE THESE CREDENTIALS!
   const users = {
     'admin': {
-      password: 'Toystory5',
-      name: 'abz'
+      password: 'abz',
+      name: 'Administrator'
+    },
+    'student': {
+      password: 'abz',
+      name: 'Student'
     }
     // Add more users here:
-    // 'student1': {
-    //   password: 'Password123!',
-    //   name: 'Student One'
+    // 'yourname': {
+    //   password: 'yourpass',
+    //   name: 'Your Name'
     // }
   };
 
+  console.log('Login attempt - Username:', username);
+  
   const user = users[username];
-  if (!user) return null;
+  if (!user) {
+    console.log('User not found:', username);
+    return null;
+  }
   
-  if (user.password !== password) return null;
+  if (user.password !== password) {
+    console.log('Invalid password for user:', username);
+    return null;
+  }
   
+  console.log('Login successful for user:', username);
   return {
     username: username,
     name: user.name
