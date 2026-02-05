@@ -1,5 +1,4 @@
 const crypto = require('crypto');
-const credentials = require('./credentials.json');
 
 // Store active sessions (in production, use a database)
 const sessions = new Map();
@@ -9,16 +8,48 @@ function generateToken() {
   return crypto.randomBytes(32).toString('hex');
 }
 
-// Hash password for comparison (basic - in production use bcrypt)
-function hashPassword(password) {
-  return crypto.createHash('sha256').update(password).digest('hex');
+// Verify credentials against hardcoded users (in production, use a database)
+function verifyCredentials(username, password) {
+  // CHANGE THESE CREDENTIALS!
+  const users = {
+    'admin': {
+      password: 'SecurePassword123!',
+      name: 'Administrator'
+    }
+    // Add more users here:
+    // 'student1': {
+    //   password: 'Password123!',
+    //   name: 'Student One'
+    // }
+  };
+
+  const user = users[username];
+  if (!user) return null;
+  
+  if (user.password !== password) return null;
+  
+  return {
+    username: username,
+    name: user.name
+  };
 }
 
 exports.handler = async (event) => {
+  // Add security headers
+  const headers = {
+    'Content-Type': 'application/json',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'X-XSS-Protection': '1; mode=block',
+    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+    'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
+  };
+
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
+      headers,
       body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
@@ -29,24 +60,18 @@ exports.handler = async (event) => {
     if (!username || !password) {
       return {
         statusCode: 400,
+        headers,
         body: JSON.stringify({ error: 'Username and password required' })
       };
     }
 
-    // Find user in credentials
-    const user = credentials.users.find(u => u.username === username);
+    // Verify user credentials
+    const user = verifyCredentials(username, password);
 
     if (!user) {
       return {
         statusCode: 401,
-        body: JSON.stringify({ error: 'Invalid username or password' })
-      };
-    }
-
-    // Check password (plain text comparison - for production, use hashed passwords)
-    if (user.password !== password) {
-      return {
-        statusCode: 401,
+        headers,
         body: JSON.stringify({ error: 'Invalid username or password' })
       };
     }
@@ -64,9 +89,7 @@ exports.handler = async (event) => {
 
     return {
       statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({ 
         token,
         username: user.username,
@@ -78,10 +101,11 @@ exports.handler = async (event) => {
     console.error('Auth error:', error);
     return {
       statusCode: 500,
+      headers,
       body: JSON.stringify({ error: 'Authentication failed' })
     };
   }
 };
 
-// Export sessions for use in other functions
-exports.sessions = sessions;
+// Make sessions available to other functions
+global.authSessions = sessions;
