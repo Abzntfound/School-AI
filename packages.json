@@ -1,0 +1,16 @@
+{
+  "name": "school-ai-helper-vercel",
+  "version": "1.0.0",
+  "description": "School AI Helper with Claude - Deployed on Vercel",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
