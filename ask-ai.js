@@ -1,8 +1,9 @@
 const Anthropic = require('@anthropic-ai/sdk');
 
-// Simple session store (shared across function invocations in same instance)
-// In production, use Redis or a database
-const sessions = new Map();
+// Get sessions from auth function
+const getSessions = () => {
+  return global.authSessions || new Map();
+};
 
 // Verify session token
 function verifyToken(authHeader) {
@@ -11,6 +12,7 @@ function verifyToken(authHeader) {
   }
 
   const token = authHeader.substring(7);
+  const sessions = getSessions();
   const session = sessions.get(token);
 
   if (!session) {
@@ -27,10 +29,20 @@ function verifyToken(authHeader) {
 }
 
 exports.handler = async (event) => {
+  // Add security headers
+  const headers = {
+    'Content-Type': 'application/json',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'X-XSS-Protection': '1; mode=block',
+    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains'
+  };
+
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
+      headers,
       body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
@@ -41,6 +53,7 @@ exports.handler = async (event) => {
   if (!session) {
     return {
       statusCode: 401,
+      headers,
       body: JSON.stringify({ error: 'Unauthorized - Please login' })
     };
   }
@@ -51,7 +64,19 @@ exports.handler = async (event) => {
     if (!question) {
       return {
         statusCode: 400,
+        headers,
         body: JSON.stringify({ error: 'Question is required' })
+      };
+    }
+
+    // Check if API key is set
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ 
+          error: 'API key not configured. Please set ANTHROPIC_API_KEY environment variable.' 
+        })
       };
     }
 
@@ -75,9 +100,7 @@ exports.handler = async (event) => {
 
     return {
       statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({ answer })
     };
 
@@ -85,12 +108,10 @@ exports.handler = async (event) => {
     console.error('Error:', error);
     return {
       statusCode: 500,
+      headers,
       body: JSON.stringify({ 
-        error: 'Failed to get AI response. Make sure your API key is set up correctly.' 
+        error: 'Failed to get AI response. Please try again.' 
       })
     };
   }
 };
-
-// Share sessions Map with auth function
-exports.sessions = sessions;
