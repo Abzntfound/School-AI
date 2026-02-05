@@ -1,0 +1,8 @@
+{
+  "name": "school-ai-helper",
+  "version": "1.0.0",
+  "description": "School AI Helper with Claude",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.0"
+  }
+}
