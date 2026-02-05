@@ -1,6 +1,6 @@
 const Anthropic = require('@anthropic-ai/sdk');
 
-// Get sessions from auth function
+// Get sessions from global (shared with auth)
 const getSessions = () => {
   return global.authSessions || new Map();
 };
@@ -28,56 +28,44 @@ function verifyToken(authHeader) {
   return session;
 }
 
-exports.handler = async (event) => {
-  // Add security headers
-  const headers = {
-    'Content-Type': 'application/json',
-    'X-Content-Type-Options': 'nosniff',
-    'X-Frame-Options': 'DENY',
-    'X-XSS-Protection': '1; mode=block',
-    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains'
-  };
+module.exports = async (req, res) => {
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  
+  // Handle preflight
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
 
   // Only allow POST requests
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers,
-      body: JSON.stringify({ error: 'Method not allowed' })
-    };
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   // Verify authentication
-  const session = verifyToken(event.headers.authorization);
+  const session = verifyToken(req.headers.authorization);
   
   if (!session) {
-    return {
-      statusCode: 401,
-      headers,
-      body: JSON.stringify({ error: 'Unauthorized - Please login' })
-    };
+    return res.status(401).json({ error: 'Unauthorized - Please login' });
   }
 
   try {
-    const { question } = JSON.parse(event.body);
+    const { question } = req.body;
 
     if (!question) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: 'Question is required' })
-      };
+      return res.status(400).json({ error: 'Question is required' });
     }
 
     // Check if API key is set
     if (!process.env.ANTHROPIC_API_KEY) {
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({ 
-          error: 'API key not configured. Please set ANTHROPIC_API_KEY environment variable.' 
-        })
-      };
+      return res.status(500).json({ 
+        error: 'API key not configured. Please set ANTHROPIC_API_KEY environment variable.' 
+      });
     }
 
     // Initialize Anthropic client with API key from environment variable
@@ -98,20 +86,12 @@ exports.handler = async (event) => {
     // Extract the answer from Claude's response
     const answer = message.content[0].text;
 
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({ answer })
-    };
+    return res.status(200).json({ answer });
 
   } catch (error) {
     console.error('Error:', error);
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ 
-        error: 'Failed to get AI response. Please try again.' 
-      })
-    };
+    return res.status(500).json({ 
+      error: 'Failed to get AI response. Please try again.' 
+    });
   }
 };
