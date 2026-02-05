@@ -13,11 +13,11 @@ function verifyCredentials(username, password) {
   // CHANGE THESE CREDENTIALS!
   const users = {
     'admin': {
-      password: 'abz',
+      password: 'admin123',
       name: 'Administrator'
     },
     'student': {
-      password: 'abz',
+      password: 'student123',
       name: 'Student'
     }
     // Add more users here:
