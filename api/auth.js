@@ -20,29 +20,19 @@ function verifyCredentials(username, password) {
       password: 'student123',
       name: 'Student'
     }
-    // Add more users here:
-    // 'yourname': {
-    //   password: 'yourpass',
-    //   name: 'Your Name'
-    // }
   };
 
   console.log('=== VERIFY CREDENTIALS ===');
   console.log('Looking for username:', username);
   console.log('Available users:', Object.keys(users));
-  console.log('Username trimmed:', username.trim());
-  console.log('Password received length:', password.length);
   
   const user = users[username];
   if (!user) {
     console.log('❌ User not found:', username);
-    console.log('Did you mean "admin" or "student"?');
     return null;
   }
   
   console.log('✓ User found:', username);
-  console.log('Expected password:', user.password);
-  console.log('Received password:', password);
   console.log('Passwords match:', user.password === password);
   
   if (user.password !== password) {
@@ -57,45 +47,34 @@ function verifyCredentials(username, password) {
   };
 }
 
-exports.handler = async (event) => {
-  // Add security headers
-  const headers = {
-    'Content-Type': 'application/json',
-    'X-Content-Type-Options': 'nosniff',
-    'X-Frame-Options': 'DENY',
-    'X-XSS-Protection': '1; mode=block',
-    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-    'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
-  };
+module.exports = async (req, res) => {
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  
+  // Handle preflight
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
 
   // Only allow POST requests
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers,
-      body: JSON.stringify({ error: 'Method not allowed' })
-    };
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const bodyData = JSON.parse(event.body);
-    const { username, password } = bodyData;
+    const { username, password } = req.body;
 
     console.log('=== AUTH DEBUG ===');
-    console.log('Raw body:', event.body);
-    console.log('Parsed username:', username);
-    console.log('Parsed password:', password);
-    console.log('Username length:', username ? username.length : 'null');
+    console.log('Username:', username);
     console.log('Password length:', password ? password.length : 'null');
-    console.log('Username bytes:', username ? Buffer.from(username).toString('hex') : 'null');
 
     if (!username || !password) {
-      console.log('Missing credentials');
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: 'Username and password required' })
-      };
+      return res.status(400).json({ error: 'Username and password required' });
     }
 
     // Verify user credentials
@@ -103,14 +82,10 @@ exports.handler = async (event) => {
 
     if (!user) {
       console.log('Authentication failed for:', username);
-      return {
-        statusCode: 401,
-        headers,
-        body: JSON.stringify({ 
-          error: 'Invalid username or password',
-          debug: `Tried username: "${username}"`
-        })
-      };
+      return res.status(401).json({ 
+        error: 'Invalid username or password',
+        debug: `Tried username: "${username}"`
+      });
     }
 
     // Generate session token
@@ -124,25 +99,17 @@ exports.handler = async (event) => {
       expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
     });
 
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({ 
-        token,
-        username: user.username,
-        name: user.name
-      })
-    };
+    // Make sessions available globally
+    global.authSessions = sessions;
+
+    return res.status(200).json({ 
+      token,
+      username: user.username,
+      name: user.name
+    });
 
   } catch (error) {
     console.error('Auth error:', error);
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: 'Authentication failed' })
-    };
+    return res.status(500).json({ error: 'Authentication failed' });
   }
 };
-
-// Make sessions available to other functions
-global.authSessions = sessions;
