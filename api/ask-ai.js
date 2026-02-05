@@ -1,6 +1,6 @@
 const Anthropic = require('@anthropic-ai/sdk');
 
-// Get sessions from global (shared with auth)
+// Get sessions from global (shared with auth
 const getSessions = () => {
   return global.authSessions || new Map();
 };
