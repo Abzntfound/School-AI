@@ -5,7 +5,6 @@ const getSessions = () => {
   return global.authSessions || new Map();
 };
 
-// Verify session token
 function verifyToken(authHeader) {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return null;
