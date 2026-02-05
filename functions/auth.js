@@ -27,20 +27,30 @@ function verifyCredentials(username, password) {
     // }
   };
 
-  console.log('Login attempt - Username:', username);
+  console.log('=== VERIFY CREDENTIALS ===');
+  console.log('Looking for username:', username);
+  console.log('Available users:', Object.keys(users));
+  console.log('Username trimmed:', username.trim());
+  console.log('Password received length:', password.length);
   
   const user = users[username];
   if (!user) {
-    console.log('User not found:', username);
+    console.log('❌ User not found:', username);
+    console.log('Did you mean "admin" or "student"?');
     return null;
   }
+  
+  console.log('✓ User found:', username);
+  console.log('Expected password:', user.password);
+  console.log('Received password:', password);
+  console.log('Passwords match:', user.password === password);
   
   if (user.password !== password) {
-    console.log('Invalid password for user:', username);
+    console.log('❌ Invalid password for user:', username);
     return null;
   }
   
-  console.log('Login successful for user:', username);
+  console.log('✅ Login successful for user:', username);
   return {
     username: username,
     name: user.name
@@ -68,9 +78,19 @@ exports.handler = async (event) => {
   }
 
   try {
-    const { username, password } = JSON.parse(event.body);
+    const bodyData = JSON.parse(event.body);
+    const { username, password } = bodyData;
+
+    console.log('=== AUTH DEBUG ===');
+    console.log('Raw body:', event.body);
+    console.log('Parsed username:', username);
+    console.log('Parsed password:', password);
+    console.log('Username length:', username ? username.length : 'null');
+    console.log('Password length:', password ? password.length : 'null');
+    console.log('Username bytes:', username ? Buffer.from(username).toString('hex') : 'null');
 
     if (!username || !password) {
+      console.log('Missing credentials');
       return {
         statusCode: 400,
         headers,
@@ -82,10 +102,14 @@ exports.handler = async (event) => {
     const user = verifyCredentials(username, password);
 
     if (!user) {
+      console.log('Authentication failed for:', username);
       return {
         statusCode: 401,
         headers,
-        body: JSON.stringify({ error: 'Invalid username or password' })
+        body: JSON.stringify({ 
+          error: 'Invalid username or password',
+          debug: `Tried username: "${username}"`
+        })
       };
     }
 
