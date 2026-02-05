@@ -1,8 +1,16 @@
 {
   "name": "school-ai-helper",
   "version": "1.0.0",
-  "description": "School AI Helper with Claude",
+  "description": "School AI Helper with Claude - Secure Login System",
+  "main": "index.html",
+  "scripts": {
+    "dev": "netlify dev",
+    "build": "echo 'No build step required'"
+  },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.32.0"
+    "@anthropic-ai/sdk": "^0.32.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
