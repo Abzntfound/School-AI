@@ -62,7 +62,7 @@ async function login() {
   messageDiv.innerHTML = '';
 
   try {
-    const response = await fetch('/.netlify/functions/auth', {
+    const response = await fetch('/api/auth', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -141,7 +141,7 @@ async function askAI() {
   answerElement.innerHTML = '<div class="loading">AI is thinking</div>';
 
   try {
-    const response = await fetch('/.netlify/functions/ask-ai', {
+    const response = await fetch('/api/ask-ai', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
